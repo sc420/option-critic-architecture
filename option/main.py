@@ -207,6 +207,12 @@ def train(sess, env, option_critic):  # , critic):
 
                 action_probs = option_critic.predict_action(
                     [current_state], np.reshape(current_option, [1, 1]))[0]
+
+                # Make the probability sum to 1.0
+                # Reference: https://stackoverflow.com/a/53605818
+                action_probs = np.asarray(action_probs).astype('float64')
+                action_probs = action_probs / np.sum(action_probs)
+
                 current_action = np.argmax(np.random.multinomial(1, action_probs))
                 if print_option_stats:
                     if print_option_stats:
