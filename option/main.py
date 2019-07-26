@@ -63,7 +63,7 @@ END_EPS = 0.1
 # How many steps of training to reduce startE to endE.
 ANNEALING = 1000000
 # Number of options
-OPTION_DIM = 8
+# OPTION_DIM = 8
 # Pretrain steps
 PRE_TRAIN_STEPS = 50000
 # Size of replay buffer
@@ -346,6 +346,8 @@ def parse_args():
     # Add arguments
     parser.add_argument('--env_id', type=str, default='Seaquest-v0',
                         help='Environment ID')
+    parser.add_argument('--num_options', type=int, default=8,
+                        help='Number of options')
     parser.add_argument('--gpu_devices', type=str, default='0',
                         help='Set the GPU devices to use')
 
@@ -398,8 +400,10 @@ if __name__ == '__main__':
     # Modify global variables
     global MONITOR_DIR
     global SUMMARY_DIR
+    global OPTION_DIM
     MONITOR_DIR = './results/%s/gym_ddpg' % args.env_id
     SUMMARY_DIR = './results/%s/tf_ddpg' % args.env_id
+    OPTION_DIM = args.num_options
 
     # Set up Gym environment
     env = set_up_gym(args.env_id)
