@@ -5,4 +5,8 @@
 #SBATCH --time=00-01:00      # time (DD-HH:MM)
 #SBATCH --output=./%N-%j.out        # %N for node name, %j for jobID
 
-tensorboard --logdir=results/tf_ddpg
+# Open Tensorboard directly
+tensorboard --logdir=results/tf_ddpg --port=7000
+
+# Open Tensorboard in Tmux detached session
+tmux new -d -s "tensorboard/option" "tensorboard --logdir=results/tf_ddpg --port=7000"
