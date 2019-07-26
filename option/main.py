@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import argparse
 import os
 import sys
 import numpy as np
@@ -23,14 +24,17 @@ RENDER_ENV = False
 # Use Gym Monitor
 GYM_MONITOR_EN = False
 # Gym environment
-ENV_NAME = 'Seaquest-v0'
-# Directory for storing gym results
-MONITOR_DIR = './results/gym_ddpg'
-# Directory for storing tensorboard summary results
-SUMMARY_DIR = './results/tf_ddpg'
+# ENV_NAME = 'Seaquest-v0'
+# # Directory for storing gym results
+# MONITOR_DIR = './results/gym_ddpg'
+# # Directory for storing tensorboard summary results
+# SUMMARY_DIR = './results/tf_ddpg'
 # Seed
 RANDOM_SEED = 1234
 # np.random.seed(RANDOM_SEED)
+
+# GPU devices
+# GPU_DEVICES = '0'
 
 # ==========================
 #   Training Parameters
@@ -307,9 +311,9 @@ def train(sess, env, option_critic):  # , critic):
                 ' | Frame Count: %d' % (frame_count))
             counter += 1
 
-def set_up_gym():
+def set_up_gym(env_id):
 
-    env = gym.make(ENV_NAME)
+    env = gym.make(env_id)
     env.seed(RANDOM_SEED)
 
     if GYM_MONITOR_EN:
@@ -322,6 +326,23 @@ def set_up_gym():
 
     env.reset()
     return env
+
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train with Option-Critic')
+
+    # Add arguments
+    parser.add_argument('--env_id', type=str, default='Seaquest-v0',
+                        help='Environment ID')
+    parser.add_argument('--gpu_devices', type=str, default='0',
+                        help='Set the GPU devices to use')
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    return args
+
 
 
 def main(_):
@@ -341,7 +362,12 @@ def main(_):
     # Ensure action bound is symmetric
     # assert(env.action_space.high == -env.action_space.low)
 
-    with tf.Session() as sess:
+    # Allow GPU memory growth
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = GPU_DEVICES
+
+    with tf.Session(config=config) as sess:
         tf.set_random_seed(123456)
         # sess, h_size, temp, state_dim, action_dim, option_dim, action_bound, learning_rate, tau
         option_critic = OptionsNetwork(
@@ -353,5 +379,19 @@ def main(_):
     #     env.monitor.close()
 
 if __name__ == '__main__':
-    env = set_up_gym()
+    # Parse the arguments
+    args = parse_args()
+
+    # Modify global variables
+    global MONITOR_DIR
+    global SUMMARY_DIR
+    global GPU_DEVICES
+    MONITOR_DIR = './results/%s/gym_ddpg' % args.env_id
+    SUMMARY_DIR = './results/%s/tf_ddpg' % args.env_id
+    GPU_DEVICES = args.gpu_devices
+
+    # Set up Gym environment
+    env = set_up_gym(args.env_id)
+
+    # Run the main function
     tf.app.run()

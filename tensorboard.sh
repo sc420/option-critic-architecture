@@ -6,7 +6,10 @@
 #SBATCH --output=./%N-%j.out        # %N for node name, %j for jobID
 
 # Open Tensorboard directly
-tensorboard --logdir=results/tf_ddpg --port=7000
+tensorboard --logdir=results/ --port=7000
 
 # Open Tensorboard in Tmux detached session
-tmux new -d -s "tensorboard/option" "tensorboard --logdir=results/tf_ddpg --port=7000"
+tmux new -d -s "tensorboard/option" "tensorboard --logdir=results/ --port=7000"
+
+# Close Tensorboard Tmux session
+tmux kill-ses -t "tensorboard/option"
