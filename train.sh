@@ -1,12 +1,6 @@
 # Train directly
 mkdir -p results/$ENV_ID; python -m option.main > results/$ENV_ID/stdout.log 2> results/$ENV_ID/stderr.log
 
-# Change CUDA
-ln -s /usr/local/cuda-8.0/ .cuda
-
-# Unset CUDA visible devices
-unset CUDA_VISIBLE_DEVICES
-
 # Train in Tmux detached session
 ENV_ID='BeamRider-v0'; GPU_DEVICES='0'; tmux new -d -s "train/option/env-id-$ENV_ID" "mkdir -p results/$ENV_ID; python -m option.main --env_id=$ENV_ID --gpu_devices=$GPU_DEVICES > results/$ENV_ID/stdout.log 2> results/$ENV_ID/stderr.log"
 ENV_ID='Breakout-v0'; GPU_DEVICES='0'; tmux new -d -s "train/option/env-id-$ENV_ID" "mkdir -p results/$ENV_ID; python -m option.main --env_id=$ENV_ID --gpu_devices=$GPU_DEVICES > results/$ENV_ID/stdout.log 2> results/$ENV_ID/stderr.log"
