@@ -5,5 +5,4 @@
 #SBATCH --time=00-01:00      # time (DD-HH:MM)
 #SBATCH --output=./%N-%j.out        # %N for node name, %j for jobID
 
-
-tensorboard --logdir=/home/lingheng/project/lingheng/Option_Critic_Architecture/results2/tf_ddpg
+tensorboard --logdir=results/tf_ddpg
