@@ -284,7 +284,7 @@ def train(sess, env, option_critic):  # , critic):
                         summary_vars[6]: frame_count
                     })
 
-                    writer.add_summary(summary_str, i)
+                    writer.add_summary(summary_str, frame_count)
                     writer.flush()
 
                     break
