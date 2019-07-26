@@ -1,0 +1,34 @@
+{
+    "deploy.reloaded": {
+        "packages": [
+            {
+                "name": "option-critic-architecture",
+                "files": [
+                    "**",
+                ],
+                "exclude": [
+                    "**/*.pyc",
+                    "**/*.py.*.py"
+                ],
+                "deployOnSave": true,
+                "removeOnChange": true,
+                "saveBeforeDeploy": false,
+                "targets": [
+                    "elsa_kida"
+                ]
+            }
+        ],
+        "targets": [
+            {
+                "name": "elsa_kida",
+                "description": "Elsa server kida",
+                "type": "sftp",
+                "dir": "/home/shawn/option-critic-architecture",
+                "host": "kida.cs.nthu.edu.tw",
+                "port": 22,
+                "user": "shawn",
+                "privateKey": "C:/Users/Shawn/.ssh/id_rsa"
+            }
+        ]
+    }
+}

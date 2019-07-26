@@ -1,4 +1,4 @@
-from __future__ import absolute_import 
+from __future__ import absolute_import
 import os
 import sys
 import numpy as np
@@ -6,9 +6,9 @@ import gym
 from gym import wrappers
 import tensorflow as tf
 
-from models.option_critic_network import OptionsNetwork
-from helper.buffer import ReplayBuffer
-from helper.state_processor import StateProcessor
+from option.models.option_critic_network import OptionsNetwork
+from option.helper.buffer import ReplayBuffer
+from option.helper.state_processor import StateProcessor
 
 #execfile("models/option_critic_network.py")
 #execfile("helper/buffer.py")
@@ -19,15 +19,15 @@ from helper.state_processor import StateProcessor
 #   Utility Parameters
 # ========================================
 # Render gym env during training
-RENDER_ENV = True
+RENDER_ENV = False
 # Use Gym Monitor
 GYM_MONITOR_EN = False
 # Gym environment
-ENV_NAME = 'Pong-v0'
+ENV_NAME = 'Seaquest-v0'
 # Directory for storing gym results
-MONITOR_DIR = './results2/gym_ddpg'
+MONITOR_DIR = './results/gym_ddpg'
 # Directory for storing tensorboard summary results
-SUMMARY_DIR = './results2/tf_ddpg'
+SUMMARY_DIR = './results/tf_ddpg'
 # Seed
 RANDOM_SEED = 1234
 # np.random.seed(RANDOM_SEED)
@@ -90,9 +90,13 @@ def build_summaries():
     rmng_frames = tf.Variable(0.)
     tf.summary.scalar("DOCA/Remaining Frames", rmng_frames)
 
+    frame_count = tf.Variable(0.)
+    tf.summary.scalar("DOCA/Frame count", frame_count)
+
     summary_vars = [
         episode_reward, episode_ave_max_q,
-        episode_termination_ratio, tot_reward, cum_reward, rmng_frames]
+        episode_termination_ratio, tot_reward, cum_reward, rmng_frames,
+        frame_count]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -276,7 +280,8 @@ def train(sess, env, option_critic):  # , critic):
                         summary_vars[2]: 100*term_ratio,
                         summary_vars[3]: total_reward,
                         summary_vars[4]: total_reward / float(counter + 1),
-                        summary_vars[5]: (MAX_EP_STEPS - (frame_count - start_frames))
+                        summary_vars[5]: (MAX_EP_STEPS - (frame_count - start_frames)),
+                        summary_vars[6]: frame_count
                     })
 
                     writer.add_summary(summary_str, i)
@@ -289,7 +294,8 @@ def train(sess, env, option_critic):  # , critic):
                 ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)), \
                 ' | Cummulative Reward: %.1f' % (total_reward / float(counter + 1)), \
                 ' | %d Remaining Frames' % (MAX_EP_STEPS - (frame_count - start_frames)), \
-                ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (100*term_ratio))
+                ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (100*term_ratio), \
+                ' | Frame Count: %d' % (frame_count))
             counter += 1
 
 def set_up_gym():
