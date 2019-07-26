@@ -11,9 +11,9 @@ from option.models.option_critic_network import OptionsNetwork
 from option.helper.buffer import ReplayBuffer
 from option.helper.state_processor import StateProcessor
 
-#execfile("models/option_critic_network.py")
-#execfile("helper/buffer.py")
-#execfile("helper/state_processor.py")
+# execfile("models/option_critic_network.py")
+# execfile("helper/buffer.py")
+# execfile("helper/state_processor.py")
 
 
 # ========================================
@@ -32,9 +32,6 @@ GYM_MONITOR_EN = False
 # Seed
 RANDOM_SEED = 1234
 # np.random.seed(RANDOM_SEED)
-
-# GPU devices
-# GPU_DEVICES = '0'
 
 # ==========================
 #   Training Parameters
@@ -118,12 +115,13 @@ def get_reward(reward):
 
     return score, reward
 
+
 def get_epsilon(frm_count):
-    #linear descent from 1 to 0.1 starting at the replay_start_time
+    # linear descent from 1 to 0.1 starting at the replay_start_time
     replay_start_time = max([float(frm_count)-PRE_TRAIN_STEPS, 0])
     epsilon = START_EPS
-    epsilon -= (START_EPS - END_EPS)*\
-      (min(replay_start_time, ANNEALING)/float(ANNEALING))
+    epsilon -= (START_EPS - END_EPS) *\
+        (min(replay_start_time, ANNEALING)/float(ANNEALING))
     return epsilon
 
 # ===========================
@@ -173,7 +171,7 @@ def train(sess, env, option_critic):  # , critic):
             current_option = 0
             current_action = 0
             new_option = np.argmax(option_critic.predict(current_state))
-            #+ (1./(1. + i)) # state has more than 3 features in pong
+            # + (1./(1. + i)) # state has more than 3 features in pong
             done = False
             termination = True
             ep_reward = 0
@@ -213,7 +211,8 @@ def train(sess, env, option_critic):  # , critic):
                 action_probs = np.asarray(action_probs).astype('float64')
                 action_probs = action_probs / np.sum(action_probs)
 
-                current_action = np.argmax(np.random.multinomial(1, action_probs))
+                current_action = np.argmax(
+                    np.random.multinomial(1, action_probs))
                 if print_option_stats:
                     if print_option_stats:
                         action_counter[current_option][current_action] += 1
@@ -243,9 +242,11 @@ def train(sess, env, option_critic):  # , critic):
 
                 total_reward += reward
 
-                replay_buffer.add_sample(current_state[:, :, -1], current_option, score, game_over)
+                replay_buffer.add_sample(
+                    current_state[:, :, -1], current_option, score, game_over)
 
-                term = option_critic.predict_termination([next_state], [[current_option]])
+                term = option_critic.predict_termination(
+                    [next_state], [[current_option]])
                 option_term_ps, Q_values = term[0], term[1]
                 ep_ave_max_q += np.max(Q_values)
                 new_option = np.argmax(Q_values)
@@ -287,7 +288,8 @@ def train(sess, env, option_critic):  # , critic):
 
                 current_state = next_state
                 ep_reward += reward
-                term_ratio = float(termination_counter) / float(episode_counter)
+                term_ratio = float(termination_counter) / \
+                    float(episode_counter)
                 term_probs.append(term_ratio)
 
                 if done:
@@ -308,14 +310,18 @@ def train(sess, env, option_critic):  # , critic):
                     break
 
             term_ratio = float(termination_counter) / float(episode_counter)
-            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (counter + 1), \
-                ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)), \
-                ' | Cumulative Reward: %.1f' % (total_reward / float(counter + 1)), \
-                ' | %d Remaining Frames' % (MAX_EP_STEPS - (frame_count - start_frames)), \
-                ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (100*term_ratio), \
-                ' | Episode Count: %d' % (counter + 1), \
-                ' | Frame Count: %d' % (frame_count))
+            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (counter + 1),
+                  ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)),
+                  ' | Cumulative Reward: %.1f' % (
+                      total_reward / float(counter + 1)),
+                  ' | %d Remaining Frames' % (
+                      MAX_EP_STEPS - (frame_count - start_frames)),
+                  ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (
+                      100*term_ratio),
+                  ' | Episode Count: %d' % (counter + 1),
+                  ' | Frame Count: %d' % (frame_count))
             counter += 1
+
 
 def set_up_gym(env_id):
 
@@ -334,7 +340,6 @@ def set_up_gym(env_id):
     return env
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train with Option-Critic')
 
@@ -348,7 +353,6 @@ def parse_args():
     args = parser.parse_args()
 
     return args
-
 
 
 def main(_):
@@ -371,7 +375,6 @@ def main(_):
     # Allow GPU memory growth
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    config.gpu_options.visible_device_list = GPU_DEVICES
 
     with tf.Session(config=config) as sess:
         tf.set_random_seed(123456)
@@ -384,17 +387,19 @@ def main(_):
     # if GYM_MONITOR_EN:
     #     env.monitor.close()
 
+
 if __name__ == '__main__':
     # Parse the arguments
     args = parse_args()
 
+    # Set visible CUDA devices
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_devices
+
     # Modify global variables
     global MONITOR_DIR
     global SUMMARY_DIR
-    global GPU_DEVICES
     MONITOR_DIR = './results/%s/gym_ddpg' % args.env_id
     SUMMARY_DIR = './results/%s/tf_ddpg' % args.env_id
-    GPU_DEVICES = args.gpu_devices
 
     # Set up Gym environment
     env = set_up_gym(args.env_id)
