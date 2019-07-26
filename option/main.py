@@ -78,7 +78,7 @@ MINIBATCH_SIZE = 32
 def build_summaries():
     summary_ops = tf.Summary()
     episode_reward = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Reward", episode_reward)
+    tf.summary.scalar("DOCA/Episode Reward", episode_reward)
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("DOCA/Qmax Value", episode_ave_max_q)
     episode_termination_ratio = tf.Variable(0.)
@@ -86,17 +86,19 @@ def build_summaries():
     tot_reward = tf.Variable(0.)
     tf.summary.scalar("DOCA/Total Reward", tot_reward)
     cum_reward = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Cummulative Reward", tot_reward)
+    tf.summary.scalar("DOCA/Total Reward div Episode", cum_reward)
     rmng_frames = tf.Variable(0.)
     tf.summary.scalar("DOCA/Remaining Frames", rmng_frames)
 
-    frame_count = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Frame count", frame_count)
+    num_episodes = tf.Variable(0.)
+    tf.summary.scalar("DOCA/Episode count", num_episodes)
+    num_frames = tf.Variable(0.)
+    tf.summary.scalar("DOCA/Frame count", num_frames)
 
     summary_vars = [
         episode_reward, episode_ave_max_q,
         episode_termination_ratio, tot_reward, cum_reward, rmng_frames,
-        frame_count]
+        num_episodes, num_frames]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -150,6 +152,9 @@ def train(sess, env, option_critic):  # , critic):
         env.action_space.n)} for i in range(OPTION_DIM)]
     total_reward = 0
     counter = 0
+
+    num_episodes = 0
+
     for i in range(MAX_EPISODES):
         term_probs = []
         start_frames = frame_count
@@ -176,6 +181,8 @@ def train(sess, env, option_critic):  # , critic):
             start_frame_count = frame_count
             episode_counter = 0
 
+            # Run the episode until the environment is terminated or the frame
+            # count for the current episode has exceeded the limit
             while not game_over:
                 frame_count += 1
                 episode_counter += 1
@@ -281,7 +288,8 @@ def train(sess, env, option_critic):  # , critic):
                         summary_vars[3]: total_reward,
                         summary_vars[4]: total_reward / float(counter + 1),
                         summary_vars[5]: (MAX_EP_STEPS - (frame_count - start_frames)),
-                        summary_vars[6]: frame_count
+                        summary_vars[6]: (counter + 1),
+                        summary_vars[7]: frame_count
                     })
 
                     writer.add_summary(summary_str, frame_count)
@@ -292,9 +300,10 @@ def train(sess, env, option_critic):  # , critic):
             term_ratio = float(termination_counter) / float(episode_counter)
             print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (counter + 1), \
                 ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)), \
-                ' | Cummulative Reward: %.1f' % (total_reward / float(counter + 1)), \
+                ' | Cumulative Reward: %.1f' % (total_reward / float(counter + 1)), \
                 ' | %d Remaining Frames' % (MAX_EP_STEPS - (frame_count - start_frames)), \
                 ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (100*term_ratio), \
+                ' | Episode Count: %d' % (counter + 1), \
                 ' | Frame Count: %d' % (frame_count))
             counter += 1
 
