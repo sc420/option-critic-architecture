@@ -124,7 +124,6 @@ def play(sess, env, option_critic):  # , critic):
     avg_since_last_term_list = []
 
     for epoch_idx in range(MAX_EPOCHS):
-        term_probs = []
         start_frames = frame_count
 
         while MAX_EP_STEPS > (frame_count - start_frames):
@@ -224,9 +223,6 @@ def play(sess, env, option_critic):  # , critic):
 
                 current_state = next_state
                 ep_reward += reward
-                term_ratio = float(termination_counter) / \
-                    float(episode_counter)
-                term_probs.append(term_ratio)
 
                 if done:
                     break

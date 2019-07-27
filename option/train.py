@@ -83,7 +83,7 @@ def build_summaries():
     episode_ave_max_q = tf.Variable(0.)
     tf.summary.scalar("DOCA/Qmax Value", episode_ave_max_q)
     episode_termination_ratio = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Term Ratio", episode_termination_ratio)
+    tf.summary.scalar("DOCA/Termination Count", episode_termination_ratio)
     tot_reward = tf.Variable(0.)
     tf.summary.scalar("DOCA/Total Reward", tot_reward)
     cum_reward = tf.Variable(0.)
@@ -94,9 +94,9 @@ def build_summaries():
     num_epochs = tf.Variable(0.)
     tf.summary.scalar("DOCA/Epoch", num_epochs)
     num_episodes = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Episode count", num_episodes)
+    tf.summary.scalar("DOCA/Episode Count", num_episodes)
     num_frames = tf.Variable(0.)
-    tf.summary.scalar("DOCA/Frame count", num_frames)
+    tf.summary.scalar("DOCA/Frame Count", num_frames)
 
     summary_vars = [
         episode_reward, episode_ave_max_q,
@@ -166,7 +166,6 @@ def train(sess, env, option_critic):  # , critic):
     counter = 0
 
     for epoch_idx in range(MAX_EPOCHS):
-        term_probs = []
         start_frames = frame_count
 
         while MAX_EP_STEPS > (frame_count - start_frames):
@@ -296,17 +295,14 @@ def train(sess, env, option_critic):  # , critic):
 
                 current_state = next_state
                 ep_reward += reward
-                term_ratio = float(termination_counter) / \
-                    float(episode_counter)
-                term_probs.append(term_ratio)
 
                 if done:
                     summary_str = sess.run(summary_ops, feed_dict={
                         summary_vars[0]: ep_reward,
                         summary_vars[1]: ep_ave_max_q / float(episode_counter),
-                        summary_vars[2]: 100*term_ratio,
+                        summary_vars[2]: termination_counter,
                         summary_vars[3]: total_reward,
-                        summary_vars[4]: total_reward / float(counter + 1),
+                        summary_vars[4]: total_reward / float(episode_counter),
                         summary_vars[5]: (MAX_EP_STEPS - (frame_count - start_frames)),
 
                         summary_vars[6]: epoch_idx,
