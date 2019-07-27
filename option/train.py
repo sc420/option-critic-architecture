@@ -345,7 +345,7 @@ def train(sess, env, option_critic):  # , critic):
             counter += 1
 
     # Save the last model
-    save_model(saver, sess, 'last_model.ckpt', global_step=frame_count)
+    save_model(saver, sess, 'last_model.ckpt')
 
     # Print the message
     print('Done training')
