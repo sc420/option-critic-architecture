@@ -455,7 +455,7 @@ if __name__ == '__main__':
         args.env_id, args.seed)
     SUMMARY_DIR = './results/env_id-{}/seed-{}/tf_ddpg'.format(
         args.env_id, args.seed)
-    MODEL_DIR = './results/env_id-{}/seed-{}/modles'.format(
+    MODEL_DIR = './results/env_id-{}/seed-{}/models'.format(
         args.env_id, args.seed)
     OPTION_DIM = args.num_options
     RANDOM_SEED = args.seed
