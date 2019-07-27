@@ -1,10 +1,12 @@
 from __future__ import absolute_import
-import argparse
-import os
-import sys
-import numpy as np
-import gym
+
 from gym import wrappers
+import argparse
+import gym
+import numpy as np
+import os
+import pandas as pd
+import sys
 import tensorflow as tf
 
 from option.models.option_critic_network import OptionsNetwork
@@ -32,7 +34,7 @@ RENDER_ENV = False
 # Update Frequency
 update_freq = 4
 # Max training epochs
-MAX_EPOCHS = 40
+MAX_EPOCHS = 1
 # Max episode length
 MAX_EP_STEPS = 250000
 # Maximum frames per game
@@ -111,8 +113,15 @@ def play(sess, env, option_critic):  # , critic):
         env.action_space.n)} for epoch_idx in range(OPTION_DIM)]
     total_reward = 0
 
-    # Initialize the episode counter
-    counter = 0
+    # Initialize the stats
+    since_last_term_list = []
+
+    # Initialize the lists updated after the episode is terminated
+    ep_count_list = []
+    frame_count_list = []
+    ep_reward_list = []
+    termination_counter_list = []
+    avg_since_last_term_list = []
 
     for epoch_idx in range(MAX_EPOCHS):
         term_probs = []
@@ -149,6 +158,9 @@ def play(sess, env, option_critic):  # , critic):
                 if termination:
                     if print_option_stats:
                         print("terminated ------- {}".format(since_last_term))
+
+                    # Save the stat
+                    since_last_term_list.append(since_last_term)
 
                     termination_counter += 1
                     since_last_term = 1
@@ -219,18 +231,39 @@ def play(sess, env, option_critic):  # , critic):
                 if done:
                     break
 
+            # Add stats to the lists
+            ep_count_list.append(episode_counter)
+            frame_count_list.append(frame_count)
+            ep_reward_list.append(ep_reward)
+            termination_counter_list.append(termination_counter)
+
+            if len(since_last_term_list) >= 0:
+                avg_since_last_term_list.append(np.mean(since_last_term_list))
+            else:
+                avg_since_last_term_list.append(None)
+
             term_ratio = float(termination_counter) / float(episode_counter)
-            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (counter + 1),
+            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (episode_counter),
                   ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)),
                   ' | Cumulative Reward: %.1f' % (
-                      total_reward / float(counter + 1)),
+                      total_reward / float(episode_counter)),
                   ' | %d Remaining Frames' % (
                       MAX_EP_STEPS - (frame_count - start_frames)),
                   ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (
                       100*term_ratio),
-                  ' | Episode Count: %d' % (counter + 1),
+                  ' | Episode Count: %d' % (episode_counter),
                   ' | Frame Count: %d' % (frame_count))
-            counter += 1
+
+            # Save the stats to the file
+            df_stats = pd.DataFrame(data={
+                'ep_count': ep_count_list,
+                'frame_count': frame_count_list,
+                'ep_reward': ep_reward_list,
+                'termination_count': termination_counter_list,
+                'avg_since_last_term': avg_since_last_term_list,
+            })
+
+            df_stats.to_csv('{}/stats.csv'.format(STATS_DIR))
 
     # Print the message
     print('Done playing')
@@ -272,6 +305,10 @@ def parse_args():
 
 
 def main(_):
+    # Create directories if not existed
+    if not os.path.exists(STATS_DIR):
+        os.makedirs(STATS_DIR)
+
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
@@ -308,9 +345,12 @@ if __name__ == '__main__':
 
     # Modify global variables
     global MODEL_DIR
+    global STATS_DIR
     global OPTION_DIM
     global RANDOM_SEED
-    MODEL_DIR = './results/env_id-{}/seed-{}/modles'.format(
+    MODEL_DIR = './results/env_id-{}/seed-{}/models'.format(
+        args.env_id, args.seed)
+    STATS_DIR = './results/env_id-{}/seed-{}/stats'.format(
         args.env_id, args.seed)
     OPTION_DIM = args.num_options
     RANDOM_SEED = args.seed
