@@ -331,16 +331,16 @@ def train(sess, env, option_critic):  # , critic):
 
                     break
 
-            term_ratio = float(termination_counter) / float(episode_counter)
-            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (counter + 1),
+            print('| Reward: %.2i' % int(ep_reward),
+                  " | Episode %d" % (episode_counter),
                   ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)),
                   ' | Cumulative Reward: %.1f' % (
-                      total_reward / float(counter + 1)),
+                      total_reward / float(episode_counter)),
                   ' | %d Remaining Frames' % (
                       MAX_EP_STEPS - (frame_count - start_frames)),
-                  ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (
-                      100*term_ratio),
-                  ' | Episode Count: %d' % (counter + 1),
+                  ' | Epsilon: %.4f' % eps,
+                  " | Termination Count: %d" % (termination_counter),
+                  ' | Episode Count: %d' % (episode_counter),
                   ' | Frame Count: %d' % (frame_count))
             counter += 1
 

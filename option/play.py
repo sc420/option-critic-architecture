@@ -242,15 +242,15 @@ def play(sess, env, option_critic):  # , critic):
             else:
                 avg_since_last_term_list.append(None)
 
-            term_ratio = float(termination_counter) / float(episode_counter)
-            print('| Reward: %.2i' % int(ep_reward), " | Episode %d" % (episode_counter),
+            print('| Reward: %.2i' % int(ep_reward),
+                  " | Episode %d" % (episode_counter),
                   ' | Qmax: %.4f' % (ep_ave_max_q / float(episode_counter)),
                   ' | Cumulative Reward: %.1f' % (
                       total_reward / float(episode_counter)),
                   ' | %d Remaining Frames' % (
                       MAX_EP_STEPS - (frame_count - start_frames)),
-                  ' | Epsilon: %.4f' % eps, " | Termination Ratio: %.2f" % (
-                      100*term_ratio),
+                  ' | Epsilon: %.4f' % eps,
+                  " | Termination Count: %d" % (termination_counter),
                   ' | Episode Count: %d' % (episode_counter),
                   ' | Frame Count: %d' % (frame_count))
 
