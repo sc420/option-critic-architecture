@@ -30,7 +30,7 @@ GYM_MONITOR_EN = False
 # # Directory for storing tensorboard summary results
 # SUMMARY_DIR = './results/tf_ddpg'
 # Seed
-RANDOM_SEED = 1234
+# RANDOM_SEED = 1234
 # np.random.seed(RANDOM_SEED)
 
 # ==========================
@@ -38,8 +38,8 @@ RANDOM_SEED = 1234
 # ==========================
 # Update Frequency
 update_freq = 4
-# Max training steps
-MAX_EPISODES = 8000
+# Max training epochs
+MAX_EPOCHS = 40
 # Max episode length
 MAX_EP_STEPS = 250000
 # Maximum frames per game
@@ -91,6 +91,8 @@ def build_summaries():
     rmng_frames = tf.Variable(0.)
     tf.summary.scalar("DOCA/Remaining Frames", rmng_frames)
 
+    num_epochs = tf.Variable(0.)
+    tf.summary.scalar("DOCA/Epoch", num_epochs)
     num_episodes = tf.Variable(0.)
     tf.summary.scalar("DOCA/Episode count", num_episodes)
     num_frames = tf.Variable(0.)
@@ -99,7 +101,7 @@ def build_summaries():
     summary_vars = [
         episode_reward, episode_ave_max_q,
         episode_termination_ratio, tot_reward, cum_reward, rmng_frames,
-        num_episodes, num_frames]
+        num_epochs, num_episodes, num_frames]
     summary_ops = tf.summary.merge_all()
 
     return summary_ops, summary_vars
@@ -138,6 +140,9 @@ def train(sess, env, option_critic):  # , critic):
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(SUMMARY_DIR, sess.graph)
 
+    # Initialize the saver
+    saver = tf.train.Saver()
+
     # Initialize target network weights
     option_critic.update_target_network()
     # critic.update_target_network()
@@ -151,13 +156,16 @@ def train(sess, env, option_critic):  # , critic):
     print_option_stats = False
     # Initialize action counter to 0
     action_counter = [{j: 0 for j in range(
-        env.action_space.n)} for i in range(OPTION_DIM)]
+        env.action_space.n)} for epoch_idx in range(OPTION_DIM)]
     total_reward = 0
+
+    # Initialize the best episode reward
+    best_ep_reward = (-np.inf)
+
+    # Initialize the episode counter
     counter = 0
 
-    num_episodes = 0
-
-    for i in range(MAX_EPISODES):
+    for epoch_idx in range(MAX_EPOCHS):
         term_probs = []
         start_frames = frame_count
 
@@ -283,7 +291,7 @@ def train(sess, env, option_critic):  # , critic):
 
                     if frame_count % (FREEZE_INTERVAL) == 0:
                         # Update target networks
-                        print("updated params")
+                        print('Update parameters')
                         option_critic.update_target_network()
 
                 current_state = next_state
@@ -300,12 +308,26 @@ def train(sess, env, option_critic):  # , critic):
                         summary_vars[3]: total_reward,
                         summary_vars[4]: total_reward / float(counter + 1),
                         summary_vars[5]: (MAX_EP_STEPS - (frame_count - start_frames)),
-                        summary_vars[6]: (counter + 1),
-                        summary_vars[7]: frame_count
+
+                        summary_vars[6]: epoch_idx,
+                        summary_vars[7]: counter,
+                        summary_vars[8]: frame_count
                     })
 
                     writer.add_summary(summary_str, frame_count)
                     writer.flush()
+
+                    # Check whether to save best model
+                    if ep_reward > best_ep_reward:
+                        # Print the message
+                        print(
+                            'Found new best episode reward {}, save model'.format(ep_reward))
+
+                        # Save the model
+                        save_model(saver, sess, 'best_model.ckpt')
+
+                        # Update the best episode reward
+                        best_ep_reward = ep_reward
 
                     break
 
@@ -322,9 +344,14 @@ def train(sess, env, option_critic):  # , critic):
                   ' | Frame Count: %d' % (frame_count))
             counter += 1
 
+    # Save the last model
+    save_model(saver, sess, 'last_model.ckpt', global_step=frame_count)
+
+    # Print the message
+    print('Done training')
+
 
 def set_up_gym(env_id):
-
     env = gym.make(env_id)
     env.seed(RANDOM_SEED)
 
@@ -340,7 +367,21 @@ def set_up_gym(env_id):
     return env
 
 
+def save_model(saver, sess, filename, global_step=None):
+    # Build the path
+    path = '{}/{}'.format(MODEL_DIR, filename)
+
+    # Check whether to indicate global step
+    if global_step is None:
+        # Save the model without global step
+        saver.save(sess, path)
+    else:
+        # Save the model with global step
+        saver.save(sess, path, global_step=global_step)
+
+
 def parse_args():
+    # Build an argument parser
     parser = argparse.ArgumentParser(description='Train with Option-Critic')
 
     # Add arguments
@@ -348,6 +389,8 @@ def parse_args():
                         help='Environment ID')
     parser.add_argument('--num_options', type=int, default=8,
                         help='Number of options')
+    parser.add_argument('--seed', type=int, default=1000,
+                        help='Random seed')
     parser.add_argument('--gpu_devices', type=str, default='0',
                         help='Set the GPU devices to use')
 
@@ -358,11 +401,15 @@ def parse_args():
 
 
 def main(_):
+    # Create directories if not existed
     if not os.path.exists(MONITOR_DIR):
         os.makedirs(MONITOR_DIR)
 
     if not os.path.exists(SUMMARY_DIR):
         os.makedirs(SUMMARY_DIR)
+
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
@@ -379,11 +426,12 @@ def main(_):
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
-        tf.set_random_seed(123456)
+        tf.set_random_seed(RANDOM_SEED)
         # sess, h_size, temp, state_dim, action_dim, option_dim, action_bound, learning_rate, tau
         option_critic = OptionsNetwork(
             sess, 512, 1, state_dim, action_dim, 8, ACTOR_LEARNING_RATE, TAU, GAMMA, clip_delta=1)
 
+        # Train the network
         train(sess, env, option_critic)
 
     # if GYM_MONITOR_EN:
@@ -400,10 +448,17 @@ if __name__ == '__main__':
     # Modify global variables
     global MONITOR_DIR
     global SUMMARY_DIR
+    global MODEL_DIR
     global OPTION_DIM
-    MONITOR_DIR = './results/%s/gym_ddpg' % args.env_id
-    SUMMARY_DIR = './results/%s/tf_ddpg' % args.env_id
+    global RANDOM_SEED
+    MONITOR_DIR = './results/env_id-{}/seed-{}/gym_ddpg'.format(
+        args.env_id, args.seed)
+    SUMMARY_DIR = './results/env_id-{}/seed-{}/tf_ddpg'.format(
+        args.env_id, args.seed)
+    MODEL_DIR = './results/env_id-{}/seed-{}/modles'.format(
+        args.env_id, args.seed)
     OPTION_DIM = args.num_options
+    RANDOM_SEED = args.seed
 
     # Set up Gym environment
     env = set_up_gym(args.env_id)
